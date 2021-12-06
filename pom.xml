@@ -104,7 +104,14 @@
 			<artifactId>springdoc-openapi-webflux-ui</artifactId>
 			<version>1.4.3</version>
 		</dependency>
-
+		<dependency>
+			<groupId>io.github.resilience4j</groupId>
+			<artifactId>resilience4j-spring-boot2</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-aop</artifactId>
+		</dependency>
 	</dependencies>
 	<dependencyManagement>
 		<dependencies>
