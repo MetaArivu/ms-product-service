@@ -4,6 +4,7 @@ import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.product.adapter.dto.ProductCreatedEvent;
 
 @Document(value = "product_details")
 public class ProductDetails extends BaseEntity {
@@ -61,4 +62,13 @@ public class ProductDetails extends BaseEntity {
 		return true;
 	}
 
+	public ProductCreatedEvent productCreatedEvent() {
+		return new ProductCreatedEvent.Build()
+				.description(description)
+				.id(getId())
+				.image(image)
+				.name(name)
+				.price(price)
+				.build();
+	}
 }

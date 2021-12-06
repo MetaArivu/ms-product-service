@@ -10,9 +10,14 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Service;
+import org.springframework.util.concurrent.ListenableFuture;
+import org.springframework.util.concurrent.ListenableFutureCallback;
 import org.springframework.web.client.RestTemplate;
 
+import com.product.adapter.dto.ProductCreatedEvent;
 import com.product.adapter.dto.ProductDetailsDTO;
 import com.product.adapter.dto.ProductReviewDTO;
 import com.product.adapter.dto.Response;
@@ -26,6 +31,8 @@ import com.product.server.exceptions.InvalidInputException;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import static com.product.APPConstant.KAFKA_TOPIC_PRODUCT_CREATED_EVENT;
+
 @Service
 public class ProductServiceImpl implements ProductService {
 
@@ -36,11 +43,13 @@ public class ProductServiceImpl implements ProductService {
 
 	@Autowired
 	private RestTemplate restTemplate;
-	
+
 	@Autowired
 	private AppProperties appProp;
-	
-	
+
+	@Autowired
+	private KafkaTemplate<String, ProductCreatedEvent> kafkaTemplate;
+
 	@Override
 	public Mono<ProductDetailsDTO> findById(String id) {
 		log.info("Find Product By Id=" + id);
@@ -49,21 +58,14 @@ public class ProductServiceImpl implements ProductService {
 			Mono<ProductDetailsDTO> fallback = Mono.error(new InvalidInputException("Invalid Id: " + id));
 			return fallback;
 		}
-		return prodRepo.findByIdAndActive(id, true)
-				.flatMap(prodDetails -> {
-					ProductReviewDTO reviewDto = this.getProductReviews(prodDetails.getId());
-					ProductDetailsDTO dto = new ProductDetailsDTO.Build()
-							.description(prodDetails.getDescription())
-							.id(prodDetails.getId())
-							.image(prodDetails.getImage())
-							.name(prodDetails.getName())
-							.price(prodDetails.getPrice())
-							.review(reviewDto)
-							.build();
-							
-					
-					return Mono.just(dto);
-				});
+		return prodRepo.findByIdAndActive(id, true).flatMap(prodDetails -> {
+			ProductReviewDTO reviewDto = this.getProductReviews(prodDetails.getId());
+			ProductDetailsDTO dto = new ProductDetailsDTO.Build().description(prodDetails.getDescription())
+					.id(prodDetails.getId()).image(prodDetails.getImage()).name(prodDetails.getName())
+					.price(prodDetails.getPrice()).review(reviewDto).build();
+
+			return Mono.just(dto);
+		});
 	}
 
 	@Override
@@ -76,7 +78,9 @@ public class ProductServiceImpl implements ProductService {
 			return fallback;
 		}
 
-		return prodRepo.save(_prod);
+		return prodRepo.save(_prod).doOnNext((prod) -> {
+			this.publishEvent(prod.productCreatedEvent());
+		});
 	}
 
 	@Override
@@ -104,42 +108,47 @@ public class ProductServiceImpl implements ProductService {
 		log.info("Find all active products");
 		return prodRepo.findByActive(true);
 	}
-//
-//	private void publishEvent(UserCreatedEvent event) {
-//		log.info("Publishing on topic={} data={}",KAFKA_TOPIC_USER_CREATED_EVENT,event);
-//		ListenableFuture<SendResult<String, UserCreatedEvent>> listenableFuture = kafkaTemplate.send(KAFKA_TOPIC_USER_CREATED_EVENT, event.getId(), event);
-//		
-//		listenableFuture.addCallback(new ListenableFutureCallback<SendResult<String, UserCreatedEvent>>() {
-//
-//			@Override
-//			public void onSuccess(SendResult<String, UserCreatedEvent> result) {
-//				log.info("Ack Received, Message published successfully on topic={}, key={}",KAFKA_TOPIC_USER_CREATED_EVENT, result.getProducerRecord().key());
-//
-//			}
-//
-//			@Override
-//			public void onFailure(Throwable ex) {
-//				log.error("Message cannot be published Exception={}, Event={}, Topic={}", ex.getMessage(), event, KAFKA_TOPIC_USER_CREATED_EVENT);
-//				log.error("Exception=",ex);
-//			}
-//		});;
-//	}
+
+	private void publishEvent(ProductCreatedEvent event) {
+		log.info("Publishing on topic={} data={}", KAFKA_TOPIC_PRODUCT_CREATED_EVENT, event);
+		ListenableFuture<SendResult<String, ProductCreatedEvent>> listenableFuture = kafkaTemplate
+				.send(KAFKA_TOPIC_PRODUCT_CREATED_EVENT, event.getId(), event);
+
+		listenableFuture.addCallback(new ListenableFutureCallback<SendResult<String, ProductCreatedEvent>>() {
+
+			@Override
+			public void onSuccess(SendResult<String, ProductCreatedEvent> result) {
+				log.info("Ack Received, Message published successfully on topic={}, key={}",
+						KAFKA_TOPIC_PRODUCT_CREATED_EVENT, result.getProducerRecord().key());
+
+			}
+
+			@Override
+			public void onFailure(Throwable ex) {
+				log.error("Message cannot be published Exception={}, Event={}, Topic={}", ex.getMessage(), event,
+						KAFKA_TOPIC_PRODUCT_CREATED_EVENT);
+				log.error("Exception=", ex);
+			}
+		});
+		;
+	}
 
 	private ProductReviewDTO getProductReviews(String prodId) {
 		String prodReviewUrl = appProp.getProdReviewURL(prodId);
-		log.info("Fetch Product Reviews ProdId={}",prodId);
-		log.info("Product Review URL={}",prodReviewUrl );
+		log.info("Fetch Product Reviews ProdId={}", prodId);
+		log.info("Product Review URL={}", prodReviewUrl);
 		String authHeader = MDC.get("Authorization");
-		log.info("Authorization Key={}",authHeader);
+		log.info("Authorization Key={}", authHeader);
 		HttpHeaders headers = new HttpHeaders();
 		headers.add("Authorization", authHeader);
-		HttpEntity httpEntity  = new HttpEntity<>(headers);
-		
-		ResponseEntity<Response> responseEntity = this.restTemplate.exchange(prodReviewUrl, HttpMethod.GET,httpEntity,Response.class);
-		
+		HttpEntity httpEntity = new HttpEntity<>(headers);
+
+		ResponseEntity<Response> responseEntity = this.restTemplate.exchange(prodReviewUrl, HttpMethod.GET, httpEntity,
+				Response.class);
+
 		Response response = responseEntity.getBody();
 		log.info("Product Review={}", response.toJSON());
-		
+
 		return new ProductReviewDTO(true, (List<Object>) response.getData());
 	}
 }

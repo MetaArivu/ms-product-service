@@ -1,6 +1,6 @@
 package com.product.adapter.dto;
 
-public class ProductDetailsDTO {
+public class ProductCreatedEvent {
 
 	private String id;
 	private String name;
@@ -8,17 +8,13 @@ public class ProductDetailsDTO {
 	private String image;
 	private Double price;
 
-	private ProductReviewDTO review;
-
-	private ProductDetailsDTO(String id, String name, String description, String image, Double price,
-			ProductReviewDTO review) {
+	private ProductCreatedEvent(String id, String name, String description, String image, Double price) {
 		super();
 		this.id = id;
 		this.name = name;
 		this.description = description;
 		this.image = image;
 		this.price = price;
-		this.review = review;
 	}
 
 	public static class Build {
@@ -28,8 +24,6 @@ public class ProductDetailsDTO {
 		private String description;
 		private String image;
 		private Double price;
-
-		private ProductReviewDTO review;
 
 		public Build id(String id) {
 			this.id = id;
@@ -56,15 +50,9 @@ public class ProductDetailsDTO {
 			return this;
 		}
 
-		public Build review(ProductReviewDTO review) {
-			this.review = review;
-			return this;
+		public ProductCreatedEvent build() {
+			return new ProductCreatedEvent(id, name, description, image, price);
 		}
-
-		public ProductDetailsDTO build() {
-			return new ProductDetailsDTO(id, name, description, image, price, review);
-		}
-
 	}
 
 	public String getId() {
@@ -85,10 +73,6 @@ public class ProductDetailsDTO {
 
 	public Double getPrice() {
 		return price;
-	}
-
-	public ProductReviewDTO getReview() {
-		return review;
 	}
 
 }
