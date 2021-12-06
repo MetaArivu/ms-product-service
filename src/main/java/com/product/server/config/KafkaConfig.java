@@ -13,7 +13,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.support.serializer.JsonSerializer;
 
-import com.product.adapter.dto.ProductCreatedEvent;
+import com.product.adapter.dto.ProductEvent;
 
 @Configuration
 public class KafkaConfig {
@@ -34,12 +34,12 @@ public class KafkaConfig {
 	}
 
 	@Bean
-	public ProducerFactory<String, ProductCreatedEvent> producerFactory() {
+	public ProducerFactory<String, ProductEvent> producerFactory() {
 		return new DefaultKafkaProducerFactory<>(producerConfigs());
 	}
 
 	@Bean
-	public KafkaTemplate<String, ProductCreatedEvent> kafkaTemplate() {
+	public KafkaTemplate<String, ProductEvent> kafkaTemplate() {
 		return new KafkaTemplate<>(producerFactory());
 	}
 	 

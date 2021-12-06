@@ -1,5 +1,7 @@
 package com.product.adapter.service;
 
+import static com.product.APPConstant.KAFKA_TOPIC_PRODUCT_CREATED_EVENT;
+
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -17,8 +19,8 @@ import org.springframework.util.concurrent.ListenableFuture;
 import org.springframework.util.concurrent.ListenableFutureCallback;
 import org.springframework.web.client.RestTemplate;
 
-import com.product.adapter.dto.ProductCreatedEvent;
 import com.product.adapter.dto.ProductDetailsDTO;
+import com.product.adapter.dto.ProductEvent;
 import com.product.adapter.dto.ProductReviewDTO;
 import com.product.adapter.dto.Response;
 import com.product.adapter.entities.ProductDetails;
@@ -30,8 +32,6 @@ import com.product.server.exceptions.InvalidInputException;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
-import static com.product.APPConstant.KAFKA_TOPIC_PRODUCT_CREATED_EVENT;
 
 @Service
 public class ProductServiceImpl implements ProductService {
@@ -48,7 +48,7 @@ public class ProductServiceImpl implements ProductService {
 	private AppProperties appProp;
 
 	@Autowired
-	private KafkaTemplate<String, ProductCreatedEvent> kafkaTemplate;
+	private KafkaTemplate<String, ProductEvent> kafkaTemplate;
 
 	@Override
 	public Mono<ProductDetailsDTO> findById(String id) {
@@ -98,7 +98,9 @@ public class ProductServiceImpl implements ProductService {
 			prod.setImage(_prod.getImage());
 			prod.setPrice(_prod.getPrice());
 			prod.setName(_prod.getName());
-			return prodRepo.save(prod);
+			return prodRepo.save(prod).doOnNext((updatedprod) -> {
+				this.publishEvent(updatedprod.productUpdateEvent());
+			});
 		}).switchIfEmpty(Mono.error(new DuplicateRecordException("Record Not Found=" + _prod.getId())));
 
 	}
@@ -109,15 +111,15 @@ public class ProductServiceImpl implements ProductService {
 		return prodRepo.findByActive(true);
 	}
 
-	private void publishEvent(ProductCreatedEvent event) {
+	private void publishEvent(ProductEvent event) {
 		log.info("Publishing on topic={} data={}", KAFKA_TOPIC_PRODUCT_CREATED_EVENT, event);
-		ListenableFuture<SendResult<String, ProductCreatedEvent>> listenableFuture = kafkaTemplate
+		ListenableFuture<SendResult<String, ProductEvent>> listenableFuture = kafkaTemplate
 				.send(KAFKA_TOPIC_PRODUCT_CREATED_EVENT, event.getId(), event);
 
-		listenableFuture.addCallback(new ListenableFutureCallback<SendResult<String, ProductCreatedEvent>>() {
+		listenableFuture.addCallback(new ListenableFutureCallback<SendResult<String, ProductEvent>>() {
 
 			@Override
-			public void onSuccess(SendResult<String, ProductCreatedEvent> result) {
+			public void onSuccess(SendResult<String, ProductEvent> result) {
 				log.info("Ack Received, Message published successfully on topic={}, key={}",
 						KAFKA_TOPIC_PRODUCT_CREATED_EVENT, result.getProducerRecord().key());
 

@@ -4,7 +4,7 @@ import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.product.adapter.dto.ProductCreatedEvent;
+import com.product.adapter.dto.ProductEvent;
 
 @Document(value = "product_details")
 public class ProductDetails extends BaseEntity {
@@ -62,13 +62,36 @@ public class ProductDetails extends BaseEntity {
 		return true;
 	}
 
-	public ProductCreatedEvent productCreatedEvent() {
-		return new ProductCreatedEvent.Build()
+	private ProductEvent productEvent(String type) {
+		return new ProductEvent.Build()
 				.description(description)
 				.id(getId())
 				.image(image)
 				.name(name)
 				.price(price)
+				.type(type)
+				.build();
+	}
+	
+	public ProductEvent productCreatedEvent() {
+		return new ProductEvent.Build()
+				.description(description)
+				.id(getId())
+				.image(image)
+				.name(name)
+				.price(price)
+				.type("CREATED")
+				.build();
+	}
+	
+	public ProductEvent productUpdateEvent() {
+		return new ProductEvent.Build()
+				.description(description)
+				.id(getId())
+				.image(image)
+				.name(name)
+				.price(price)
+				.type("UPDATE")
 				.build();
 	}
 }

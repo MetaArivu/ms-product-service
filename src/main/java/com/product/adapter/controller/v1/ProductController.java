@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -32,7 +33,6 @@ public class ProductController {
 	@Autowired
 	private ProductService svc;
 
- 
 	@PostMapping(value = "/")
 	public Mono<ResponseEntity<Response<ProductDetails>>> save(@RequestBody ProductDetails _prod) {
 
@@ -43,7 +43,19 @@ public class ProductController {
 				new Response<ProductDetails>(false, "Record Not Saved Successully"), HttpStatus.NOT_FOUND));
 
 	}
-	
+
+	@PutMapping(value = "/{id}")
+	public Mono<ResponseEntity<Response<ProductDetails>>> update(@PathVariable("id") String id,
+			@RequestBody ProductDetails _prod) {
+
+		return svc.update(id, _prod).map(prod -> {
+			return new ResponseEntity<Response<ProductDetails>>(
+					new Response<ProductDetails>(true, "Record Saved Successully", prod), HttpStatus.OK);
+		}).defaultIfEmpty(new ResponseEntity<Response<ProductDetails>>(
+				new Response<ProductDetails>(false, "Record Not Saved Successully"), HttpStatus.NOT_FOUND));
+
+	}
+
 	@GetMapping(value = "/")
 	public Mono<ResponseEntity<Response<List<ProductDetails>>>> allProducts() {
 
@@ -54,13 +66,14 @@ public class ProductController {
 						new Response<List<ProductDetails>>(false, "Record not found"), HttpStatus.NOT_FOUND));
 
 	}
-	
+
 	@GetMapping(value = "/{id}")
 	public Mono<ResponseEntity<Response<ProductDetailsDTO>>> productDetailsById(@PathVariable("id") String id) {
 
 		return svc.findById(id)
 				.map(prodDetails -> new ResponseEntity<Response<ProductDetailsDTO>>(
-						new Response<ProductDetailsDTO>(true, "Record retrieved successully", prodDetails), HttpStatus.OK))
+						new Response<ProductDetailsDTO>(true, "Record retrieved successully", prodDetails),
+						HttpStatus.OK))
 				.defaultIfEmpty(new ResponseEntity<Response<ProductDetailsDTO>>(
 						new Response<ProductDetailsDTO>(false, "Record not found"), HttpStatus.NOT_FOUND));
 
