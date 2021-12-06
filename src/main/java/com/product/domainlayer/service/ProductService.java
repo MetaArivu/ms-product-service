@@ -1,5 +1,6 @@
 package com.product.domainlayer.service;
 
+import com.product.adapter.dto.ProductDetailsDTO;
 import com.product.adapter.entities.ProductDetails;
 
 import reactor.core.publisher.Flux;
@@ -9,7 +10,7 @@ public interface ProductService {
 
 	public Flux<ProductDetails> allProducts();
 	
-	public Mono<ProductDetails> findById(String id);
+	public Mono<ProductDetailsDTO> findById(String id);
 	
 	public Mono<ProductDetails> save(ProductDetails _prod);
 	

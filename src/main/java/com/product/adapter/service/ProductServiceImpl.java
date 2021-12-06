@@ -1,16 +1,27 @@
 package com.product.adapter.service;
 
+import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
+import com.product.adapter.dto.ProductDetailsDTO;
+import com.product.adapter.dto.ProductReviewDTO;
+import com.product.adapter.dto.Response;
 import com.product.adapter.entities.ProductDetails;
 import com.product.adapter.repository.ProductRepository;
 import com.product.domainlayer.service.ProductService;
+import com.product.server.config.AppProperties;
 import com.product.server.exceptions.DuplicateRecordException;
 import com.product.server.exceptions.InvalidInputException;
-import com.product.server.secutiry.JWTUtil;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -22,17 +33,37 @@ public class ProductServiceImpl implements ProductService {
 
 	@Autowired
 	private ProductRepository prodRepo;
-  
 
+	@Autowired
+	private RestTemplate restTemplate;
+	
+	@Autowired
+	private AppProperties appProp;
+	
+	
 	@Override
-	public Mono<ProductDetails> findById(String id) {
+	public Mono<ProductDetailsDTO> findById(String id) {
 		log.info("Find Product By Id=" + id);
 
 		if (id == null) {
-			Mono<ProductDetails> fallback = Mono.error(new InvalidInputException("Invalid Id: " + id));
+			Mono<ProductDetailsDTO> fallback = Mono.error(new InvalidInputException("Invalid Id: " + id));
 			return fallback;
 		}
-		return prodRepo.findByIdAndActive(id, true);
+		return prodRepo.findByIdAndActive(id, true)
+				.flatMap(prodDetails -> {
+					ProductReviewDTO reviewDto = this.getProductReviews(prodDetails.getId());
+					ProductDetailsDTO dto = new ProductDetailsDTO.Build()
+							.description(prodDetails.getDescription())
+							.id(prodDetails.getId())
+							.image(prodDetails.getImage())
+							.name(prodDetails.getName())
+							.price(prodDetails.getPrice())
+							.review(reviewDto)
+							.build();
+							
+					
+					return Mono.just(dto);
+				});
 	}
 
 	@Override
@@ -93,4 +124,22 @@ public class ProductServiceImpl implements ProductService {
 //			}
 //		});;
 //	}
+
+	private ProductReviewDTO getProductReviews(String prodId) {
+		String prodReviewUrl = appProp.getProdReviewURL(prodId);
+		log.info("Fetch Product Reviews ProdId={}",prodId);
+		log.info("Product Review URL={}",prodReviewUrl );
+		String authHeader = MDC.get("Authorization");
+		log.info("Authorization Key={}",authHeader);
+		HttpHeaders headers = new HttpHeaders();
+		headers.add("Authorization", authHeader);
+		HttpEntity httpEntity  = new HttpEntity<>(headers);
+		
+		ResponseEntity<Response> responseEntity = this.restTemplate.exchange(prodReviewUrl, HttpMethod.GET,httpEntity,Response.class);
+		
+		Response response = responseEntity.getBody();
+		log.info("Product Review={}", response.toJSON());
+		
+		return new ProductReviewDTO(true, (List<Object>) response.getData());
+	}
 }

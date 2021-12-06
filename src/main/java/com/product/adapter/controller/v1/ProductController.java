@@ -10,11 +10,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.product.adapter.dto.ProductDetailsDTO;
 import com.product.adapter.dto.Response;
 import com.product.adapter.entities.ProductDetails;
 import com.product.domainlayer.service.ProductService;
@@ -50,6 +52,17 @@ public class ProductController {
 						new Response<List<ProductDetails>>(true, "Record retrieved successully", list), HttpStatus.OK))
 				.defaultIfEmpty(new ResponseEntity<Response<List<ProductDetails>>>(
 						new Response<List<ProductDetails>>(false, "Record not found"), HttpStatus.NOT_FOUND));
+
+	}
+	
+	@GetMapping(value = "/{id}")
+	public Mono<ResponseEntity<Response<ProductDetailsDTO>>> productDetailsById(@PathVariable("id") String id) {
+
+		return svc.findById(id)
+				.map(prodDetails -> new ResponseEntity<Response<ProductDetailsDTO>>(
+						new Response<ProductDetailsDTO>(true, "Record retrieved successully", prodDetails), HttpStatus.OK))
+				.defaultIfEmpty(new ResponseEntity<Response<ProductDetailsDTO>>(
+						new Response<ProductDetailsDTO>(false, "Record not found"), HttpStatus.NOT_FOUND));
 
 	}
 }

@@ -2,6 +2,8 @@ package com.product.adapter.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 @JsonInclude(value = Include.NON_NULL)
 public class Response<T> {
@@ -9,6 +11,10 @@ public class Response<T> {
 	private boolean success;
 	private String message;
 	private T data;
+
+	public Response() {
+
+	}
 
 	public Response(boolean success, String message, T data) {
 		super();
@@ -33,5 +39,14 @@ public class Response<T> {
 
 	public T getData() {
 		return data;
+	}
+
+	public String toJSON() {
+		try {
+			return new ObjectMapper().writeValueAsString(this);
+		} catch (JsonProcessingException e) {
+			e.printStackTrace();
+			return "{}";
+		}
 	}
 }

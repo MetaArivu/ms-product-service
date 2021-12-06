@@ -36,6 +36,9 @@ public class AppProperties {
 	@Value("${app.kafka.bootstrap-servers}")
 	private String kafkaBootstrapServer;
 
+	@Value("${app.product-review-service.review.url}")
+	private String prodReviewURL;
+
 	public String[] getPublicAPI() {
 		return this.publicAPI;
 	}
@@ -74,6 +77,10 @@ public class AppProperties {
 
 	public String getKafkaBootstrapServer() {
 		return kafkaBootstrapServer;
+	}
+
+	public String getProdReviewURL(String id) {
+		return prodReviewURL.replace("{id}", id);
 	}
 
 }

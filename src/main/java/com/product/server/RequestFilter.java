@@ -50,7 +50,7 @@ public class RequestFilter implements WebFilter {
 				log.error("{}",e);
 			}
 
-			log.debug("authorization={}", authorization);
+			log.info("authorization={}", authorization);
 			ExtraFieldPropagation.set("Authorization", authorization);
 		}).doFinally(signalType -> {
 			long totalTime = System.currentTimeMillis() - startTime;
