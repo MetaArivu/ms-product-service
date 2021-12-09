@@ -165,4 +165,15 @@ public class ProductServiceImpl implements ProductService {
 		return new ProductReviewDTO(false, null);
 	}
 	
+	@Override
+	public void init() {
+		log.info("Publishing Product Data To Kafka..");
+		this.allProducts().subscribe(pd->{
+			this.publishEvent(pd.productUpdateEvent());
+		});
+		
+	}
+	
+	
+	
 }
