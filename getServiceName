@@ -2,7 +2,7 @@
 # -------------------------------------------------------------------------------------------
 # @author: Araf Karsh Hamid
 # -------------------------------------------------------------------------------------------
-SRC_BASE="$pwd"
+SRC_BASE=/Users/deepaliarvind/github/v2/ms-product-service/
 orgName=1
 serviceName=2
 apiName=3

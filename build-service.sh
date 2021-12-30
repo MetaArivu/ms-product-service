@@ -4,6 +4,6 @@
 # -------------------------------------------------------------------------------------------
 mvn clean package
 
-cp -rf target/product-service-1.0.jar Docker/
+cp -rf target/*.jar Docker/
 
 
